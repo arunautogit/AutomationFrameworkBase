@@ -1,0 +1,14 @@
+<!DOCTYPE suite SYSTEM "http://testng.org/testng-1.0.dtd">
+<suite name="Automation Suite" parallel="methods" thread-count="5">
+    <listeners>
+        <listener class-name="com.automation.listeners.RetryListener"/>
+        <listener class-name="com.automation.listeners.ExtentReportListener"/>
+        <listener class-name="com.automation.listeners.VideoListener"/>
+        <listener class-name="com.automation.listeners.AlertListener"/>
+    </listeners>
+    <test name="Regression Tests">
+        <packages>
+            <package name="com.automation.tests.*"/>
+        </packages>
+    </test>
+</suite>
