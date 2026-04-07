@@ -1,0 +1,26 @@
+[
+  {
+    "username": "admin@example.com",
+    "password": "ValidPass123",
+    "expected_result": "success",
+    "description": "Valid credentials"
+  },
+  {
+    "username": "invalid@example.com",
+    "password": "wrongPass",
+    "expected_result": "failure",
+    "description": "Invalid password"
+  },
+  {
+    "username": "testuser@example.com",
+    "password": "",
+    "expected_result": "failure",
+    "description": "Empty password"
+  },
+  {
+    "username": "",
+    "password": "",
+    "expected_result": "failure",
+    "description": "Both empty"
+  }
+]
