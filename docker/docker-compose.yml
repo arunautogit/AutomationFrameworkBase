@@ -1,15 +1,39 @@
-version: '3'
+version: '3.8'
+
 services:
-  chrome:
+  selenium-hub:
+    image: selenium/hub:4.16.1
+    container_name: selenium-hub
+    ports:
+      - "4442:4442"
+      - "4443:4443"
+      - "4444:4444"
+    environment:
+      - SE_SESSION_REQUEST_TIMEOUT=60
+      - SE_SESSION_RETRY_INTERVAL=5
+
+  chrome-node:
     image: selenium/node-chrome:4.16.1
-    shm_size: 2gb
+    container_name: chrome-node
     depends_on:
       - selenium-hub
     environment:
       - SE_EVENT_BUS_HOST=selenium-hub
       - SE_EVENT_BUS_PUBLISH_PORT=4442
       - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
-  selenium-hub:
-    image: selenium/hub:4.16.1
-    ports:
-      - "4444:4444"
+      - SE_NODE_MAX_SESSIONS=5
+      - SE_NODE_SESSION_TIMEOUT=60
+    shm_size: 2gb
+
+  firefox-node:
+    image: selenium/node-firefox:4.16.1
+    container_name: firefox-node
+    depends_on:
+      - selenium-hub
+    environment:
+      - SE_EVENT_BUS_HOST=selenium-hub
+      - SE_EVENT_BUS_PUBLISH_PORT=4442
+      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
+      - SE_NODE_MAX_SESSIONS=5
+      - SE_NODE_SESSION_TIMEOUT=60
+    shm_size: 2gb
