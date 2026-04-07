@@ -27,17 +27,25 @@ public class ExtentReportListener implements ITestListener {
 
     @Override
     public void onTestSuccess(ITestResult result) {
-        test.get().pass("Test passed");
+        if (test.get() != null) {
+            test.get().pass("Test passed");
+        }
     }
 
     @Override
     public void onTestFailure(ITestResult result) {
-        test.get().fail(result.getThrowable());
+        if (test.get() != null) {
+            test.get().fail(result.getThrowable());
+        } else {
+            System.err.println("ExtentTest not initialized for failure: " + result.getMethod().getMethodName());
+        }
     }
 
     @Override
     public void onTestSkipped(ITestResult result) {
-        test.get().skip("Test skipped");
+        if (test.get() != null) {
+            test.get().skip("Test skipped");
+        }
     }
 
     @Override

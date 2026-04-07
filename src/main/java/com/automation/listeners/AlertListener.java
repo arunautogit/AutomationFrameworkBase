@@ -9,15 +9,26 @@ public class AlertListener implements ITestListener {
     @Override
     public void onTestFailure(ITestResult result) {
         String testName = result.getMethod().getMethodName();
-        String errorMsg = result.getThrowable().getMessage();
+        String errorMsg = result.getThrowable() != null ? result.getThrowable().getMessage() : "Unknown error";
         String message = "❌ Test Failed: " + testName + "\nError: " + errorMsg;
-        SlackNotifier.sendMessage(message);
-        EmailNotifier.sendEmail("Automation Test Failure", message);
+        
+        try {
+            SlackNotifier.sendMessage(message);
+        } catch (Exception e) {
+            System.err.println("Slack notification failed: " + e.getMessage());
+        }
+        
+        try {
+            EmailNotifier.sendEmail("Automation Test Failure", message);
+        } catch (Exception e) {
+            System.err.println("Email notification failed: " + e.getMessage());
+        }
     }
 
     @Override
     public void onTestSuccess(ITestResult result) {
-        String message = "✅ Test Passed: " + result.getMethod().getMethodName();
-        SlackNotifier.sendMessage(message); // optional
+        // Optional: send success message (commented to reduce noise)
+        // String message = "✅ Test Passed: " + result.getMethod().getMethodName();
+        // SlackNotifier.sendMessage(message);
     }
 }

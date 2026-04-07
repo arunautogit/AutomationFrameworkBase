@@ -10,12 +10,14 @@ import org.openqa.selenium.edge.EdgeOptions;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.firefox.FirefoxOptions;
 
+import java.io.File;
 import java.time.Duration;
 
 /**
  * Factory class to create WebDriver instances.
  * Supports Chrome, Firefox, Edge with headless mode and configurable timeouts.
  * Thread-safe for parallel execution.
+ * Optimised for Docker/headless environments.
  */
 public class DriverFactory {
 
@@ -23,7 +25,7 @@ public class DriverFactory {
 
     /**
      * Initializes WebDriver based on configuration properties.
-     * Uses WebDriverManager to handle driver binaries automatically.
+     * Uses system-installed browser binaries when available (e.g., in Docker).
      *
      * @return WebDriver instance
      */
@@ -34,35 +36,14 @@ public class DriverFactory {
 
         switch (browser) {
             case "chrome":
-                WebDriverManager.chromedriver().setup();
-                ChromeOptions chromeOptions = new ChromeOptions();
-                if (headless) {
-                    chromeOptions.addArguments("--headless=new");
-                }
-                chromeOptions.addArguments("--no-sandbox");
-                chromeOptions.addArguments("--disable-dev-shm-usage");
-                chromeOptions.addArguments("--remote-allow-origins=*");
-                driver = new ChromeDriver(chromeOptions);
+                driver = initChromeDriver(headless);
                 break;
-
             case "firefox":
-                WebDriverManager.firefoxdriver().setup();
-                FirefoxOptions firefoxOptions = new FirefoxOptions();
-                if (headless) {
-                    firefoxOptions.addArguments("--headless");
-                }
-                driver = new FirefoxDriver(firefoxOptions);
+                driver = initFirefoxDriver(headless);
                 break;
-
             case "edge":
-                WebDriverManager.edgedriver().setup();
-                EdgeOptions edgeOptions = new EdgeOptions();
-                if (headless) {
-                    edgeOptions.addArguments("--headless=new");
-                }
-                driver = new EdgeDriver(edgeOptions);
+                driver = initEdgeDriver(headless);
                 break;
-
             default:
                 throw new IllegalArgumentException("Browser not supported: " + browser);
         }
@@ -76,18 +57,112 @@ public class DriverFactory {
         return driver;
     }
 
-    /**
-     * Gets the WebDriver instance for the current thread.
-     *
-     * @return WebDriver instance
-     */
+    private static WebDriver initChromeDriver(boolean headless) {
+        // Try to use system-installed Chrome/Chromium (common in Docker)
+        String chromeBinary = findChromeBinary();
+        ChromeOptions options = new ChromeOptions();
+
+        if (chromeBinary != null) {
+            options.setBinary(chromeBinary);
+            System.out.println("Using Chrome binary: " + chromeBinary);
+        }
+
+        if (headless) {
+            options.addArguments("--headless=new");
+        }
+        options.addArguments("--no-sandbox");
+        options.addArguments("--disable-dev-shm-usage");
+        options.addArguments("--remote-allow-origins=*");
+        options.addArguments("--disable-gpu");
+        options.addArguments("--disable-software-rasterizer");
+        options.addArguments("--disable-extensions");
+
+        // Try to use system ChromeDriver first, else fallback to WebDriverManager
+        String systemChromeDriver = findSystemChromeDriver();
+        if (systemChromeDriver != null) {
+            System.setProperty("webdriver.chrome.driver", systemChromeDriver);
+            System.out.println("Using system ChromeDriver: " + systemChromeDriver);
+        } else {
+            System.out.println("System ChromeDriver not found, using WebDriverManager...");
+            WebDriverManager.chromedriver().setup();
+        }
+
+        return new ChromeDriver(options);
+    }
+
+    private static WebDriver initFirefoxDriver(boolean headless) {
+        FirefoxOptions options = new FirefoxOptions();
+        if (headless) {
+            options.addArguments("--headless");
+        }
+        // Try system geckodriver first
+        String systemGecko = findSystemGeckoDriver();
+        if (systemGecko != null) {
+            System.setProperty("webdriver.gecko.driver", systemGecko);
+        } else {
+            WebDriverManager.firefoxdriver().setup();
+        }
+        return new FirefoxDriver(options);
+    }
+
+    private static WebDriver initEdgeDriver(boolean headless) {
+        EdgeOptions options = new EdgeOptions();
+        if (headless) {
+            options.addArguments("--headless=new");
+        }
+        options.addArguments("--no-sandbox");
+        options.addArguments("--disable-dev-shm-usage");
+        WebDriverManager.edgedriver().setup();
+        return new EdgeDriver(options);
+    }
+
+    private static String findChromeBinary() {
+        // Common paths for Chromium/Chrome in Alpine/Docker
+        String[] possiblePaths = {
+            "/usr/bin/chromium-browser",
+            "/usr/bin/chromium",
+            "/usr/bin/google-chrome",
+            "/opt/google/chrome/chrome"
+        };
+        for (String path : possiblePaths) {
+            if (new File(path).exists()) {
+                return path;
+            }
+        }
+        return null;
+    }
+
+    private static String findSystemChromeDriver() {
+        String[] possiblePaths = {
+            "/usr/lib/chromium/chromedriver",
+            "/usr/bin/chromedriver",
+            "/usr/local/bin/chromedriver"
+        };
+        for (String path : possiblePaths) {
+            if (new File(path).exists()) {
+                return path;
+            }
+        }
+        return null;
+    }
+
+    private static String findSystemGeckoDriver() {
+        String[] possiblePaths = {
+            "/usr/bin/geckodriver",
+            "/usr/local/bin/geckodriver"
+        };
+        for (String path : possiblePaths) {
+            if (new File(path).exists()) {
+                return path;
+            }
+        }
+        return null;
+    }
+
     public static WebDriver getDriver() {
         return driverThreadLocal.get();
     }
 
-    /**
-     * Quits the WebDriver instance for the current thread and removes it from ThreadLocal.
-     */
     public static void quitDriver() {
         WebDriver driver = driverThreadLocal.get();
         if (driver != null) {
