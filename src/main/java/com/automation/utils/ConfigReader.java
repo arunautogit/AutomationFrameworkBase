@@ -9,14 +9,14 @@ public class ConfigReader {
     static {
         try (InputStream input = ConfigReader.class.getClassLoader().getResourceAsStream("config.properties")) {
             if (input == null) {
-                System.err.println("WARNING: config.properties not found – using defaults.");
+                System.err.println("WARNING: config.properties not found - using defaults.");
                 setDefaults();
             } else {
                 properties.load(input);
                 System.out.println("Loaded config.properties from classpath.");
             }
         } catch (Exception e) {
-            System.err.println("Failed to load config.properties – using defaults.");
+            System.err.println("Failed to load config.properties - using defaults.");
             setDefaults();
         }
     }
@@ -35,6 +35,10 @@ public class ConfigReader {
     }
 
     public static String getBrowser() {
+        String browser = System.getProperty("browser");
+        if (browser != null && !browser.isEmpty()) {
+            return browser;
+        }
         return getProperty("browser");
     }
 
@@ -57,12 +61,41 @@ public class ConfigReader {
 
     public static int getTimeout() {
         String timeout = getProperty("timeout");
-        if (timeout == null) return 10;
+        if (timeout == null) {
+            return 10;
+        }
         return Integer.parseInt(timeout);
     }
 
     public static boolean isHeadless() {
-        String headless = getProperty("headless");
+        String headless = System.getProperty("headless");
+        if (headless == null || headless.isEmpty()) {
+            headless = getProperty("headless");
+        }
         return headless != null && headless.equalsIgnoreCase("true");
+    }
+
+    public static String getSlackWebhook() {
+        String slackWebhook = System.getenv("SLACK_WEBHOOK_URL");
+        if (slackWebhook == null || slackWebhook.isEmpty()) {
+            slackWebhook = getProperty("slack.webhook");
+        }
+        return slackWebhook;
+    }
+
+    public static String getRemoteUrl() {
+        String remoteUrl = System.getProperty("remoteUrl");
+        if (remoteUrl == null || remoteUrl.isEmpty()) {
+            remoteUrl = System.getenv("REMOTE_URL");
+        }
+        if (remoteUrl == null || remoteUrl.isEmpty()) {
+            remoteUrl = getProperty("remote.url");
+        }
+        return remoteUrl;
+    }
+
+    public static boolean isRemoteExecution() {
+        String remoteUrl = getRemoteUrl();
+        return remoteUrl != null && !remoteUrl.isEmpty();
     }
 }

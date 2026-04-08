@@ -1,0 +1,14 @@
+[
+  {
+    "searchTerm": "Selenium WebDriver",
+    "expectedKeyword": "Selenium"
+  },
+  {
+    "searchTerm": "Java Programming",
+    "expectedKeyword": "Java"
+  },
+  {
+    "searchTerm": "TestNG Framework",
+    "expectedKeyword": "TestNG"
+  }
+]

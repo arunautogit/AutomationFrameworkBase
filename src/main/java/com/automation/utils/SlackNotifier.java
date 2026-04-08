@@ -4,9 +4,8 @@ import okhttp3.*;
 import java.io.IOException;
 
 public class SlackNotifier {
-    private static String webhookUrl = ConfigReader.getSlackWebhook();
-
     public static void sendMessage(String message) {
+        String webhookUrl = ConfigReader.getSlackWebhook();
         if (webhookUrl == null || webhookUrl.isEmpty()) {
             System.err.println("Slack webhook URL not configured");
             return;

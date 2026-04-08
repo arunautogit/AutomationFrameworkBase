@@ -2,6 +2,7 @@ package com.automation.utils;
 
 import org.apache.poi.ss.usermodel.*;
 import org.testng.annotations.DataProvider;
+import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.lang.reflect.Method;
@@ -11,7 +12,7 @@ import java.util.Map;
 public class ExcelDataProvider {
     @DataProvider(name = "excelData")
     public static Object[][] getExcelData(Method m) throws IOException {
-        String filePath = "src/test/resources/testdata/" + m.getName() + ".xlsx";
+        String filePath = resolveFilePath(m, "xlsx");
         try (FileInputStream fis = new FileInputStream(filePath)) {
             Workbook workbook = WorkbookFactory.create(fis);
             Sheet sheet = workbook.getSheetAt(0);
@@ -36,5 +37,22 @@ public class ExcelDataProvider {
             }
             return data;
         }
+    }
+
+    private static String resolveFilePath(Method method, String extension) {
+        String basePath = "src/test/resources/testdata/";
+        String[] candidates = {
+                basePath + method.getName() + "." + extension,
+                basePath + method.getDeclaringClass().getSimpleName() + "." + extension,
+                basePath + "loginTest." + extension
+        };
+
+        for (String candidate : candidates) {
+            if (new File(candidate).exists()) {
+                return candidate;
+            }
+        }
+
+        throw new IllegalArgumentException("No test data file found for method: " + method.getName());
     }
 }

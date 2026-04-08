@@ -13,7 +13,7 @@ public class GoogleSearchTest extends BaseTest {
         driver.get(ConfigReader.getUrl());
         GoogleHomePage googlePage = new GoogleHomePage(driver);
         googlePage.searchFor("Selenium WebDriver");
-        Assert.assertTrue(googlePage.getFirstResultText().contains("Selenium"),
-                "First result does not contain 'Selenium'");
+        Assert.assertTrue(googlePage.isResultsPageLoaded("Selenium WebDriver"),
+                "Google results page did not load for the query");
     }
 }

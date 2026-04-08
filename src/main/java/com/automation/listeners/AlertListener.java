@@ -10,14 +10,14 @@ public class AlertListener implements ITestListener {
     public void onTestFailure(ITestResult result) {
         String testName = result.getMethod().getMethodName();
         String errorMsg = result.getThrowable() != null ? result.getThrowable().getMessage() : "Unknown error";
-        String message = "❌ Test Failed: " + testName + "\nError: " + errorMsg;
-        
+        String message = "Test Failed: " + testName + "\nError: " + errorMsg;
+
         try {
             SlackNotifier.sendMessage(message);
         } catch (Exception e) {
             System.err.println("Slack notification failed: " + e.getMessage());
         }
-        
+
         try {
             EmailNotifier.sendEmail("Automation Test Failure", message);
         } catch (Exception e) {
@@ -28,7 +28,7 @@ public class AlertListener implements ITestListener {
     @Override
     public void onTestSuccess(ITestResult result) {
         // Optional: send success message (commented to reduce noise)
-        // String message = "✅ Test Passed: " + result.getMethod().getMethodName();
+        // String message = "Test Passed: " + result.getMethod().getMethodName();
         // SlackNotifier.sendMessage(message);
     }
 }

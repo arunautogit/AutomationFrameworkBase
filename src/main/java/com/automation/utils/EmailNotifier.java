@@ -10,16 +10,15 @@ public class EmailNotifier {
         String to = ConfigReader.getProperty("email.to");
         String host = ConfigReader.getProperty("email.smtp.host");
         String port = ConfigReader.getProperty("email.smtp.port");
-        
+
         String passwordFromEnv = System.getenv("EMAIL_PASSWORD");
         String passwordFromConfig = ConfigReader.getProperty("email.password");
-        final String password = (passwordFromEnv != null && !passwordFromEnv.isEmpty()) 
-                ? passwordFromEnv 
+        final String password = (passwordFromEnv != null && !passwordFromEnv.isEmpty())
+                ? passwordFromEnv
                 : passwordFromConfig;
 
-        // If no password, skip sending email (e.g., in Docker/CI without secrets)
         if (password == null || password.isEmpty()) {
-            System.out.println("Email not configured – skipping email alert for: " + subject);
+            System.out.println("Email not configured - skipping email alert for: " + subject);
             return;
         }
 

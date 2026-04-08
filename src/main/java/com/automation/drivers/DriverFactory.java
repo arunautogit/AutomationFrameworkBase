@@ -3,14 +3,19 @@ package com.automation.drivers;
 import com.automation.utils.ConfigReader;
 import io.github.bonigarcia.wdm.WebDriverManager;
 import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebDriverException;
+import org.openqa.selenium.MutableCapabilities;
 import org.openqa.selenium.chrome.ChromeDriver;
 import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.edge.EdgeDriver;
 import org.openqa.selenium.edge.EdgeOptions;
 import org.openqa.selenium.firefox.FirefoxDriver;
 import org.openqa.selenium.firefox.FirefoxOptions;
+import org.openqa.selenium.remote.RemoteWebDriver;
 
 import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.time.Duration;
 
 /**
@@ -34,21 +39,25 @@ public class DriverFactory {
         boolean headless = ConfigReader.isHeadless();
         WebDriver driver;
 
-        switch (browser) {
-            case "chrome":
-                driver = initChromeDriver(headless);
-                break;
-            case "firefox":
-                driver = initFirefoxDriver(headless);
-                break;
-            case "edge":
-                driver = initEdgeDriver(headless);
-                break;
-            default:
-                throw new IllegalArgumentException("Browser not supported: " + browser);
+        if (ConfigReader.isRemoteExecution()) {
+            driver = initRemoteDriver(browser, headless);
+        } else {
+            switch (browser) {
+                case "chrome":
+                    driver = initChromeDriver(headless);
+                    break;
+                case "firefox":
+                    driver = initFirefoxDriver(headless);
+                    break;
+                case "edge":
+                    driver = initEdgeDriver(headless);
+                    break;
+                default:
+                    throw new IllegalArgumentException("Browser not supported: " + browser);
+            }
         }
 
-        driver.manage().window().maximize();
+        configureWindow(driver, headless);
         driver.manage().timeouts().implicitlyWait(Duration.ofSeconds(ConfigReader.getTimeout()));
         driver.manage().timeouts().pageLoadTimeout(Duration.ofSeconds(ConfigReader.getTimeout()));
         driver.manage().timeouts().scriptTimeout(Duration.ofSeconds(ConfigReader.getTimeout()));
@@ -58,24 +67,7 @@ public class DriverFactory {
     }
 
     private static WebDriver initChromeDriver(boolean headless) {
-        // Try to use system-installed Chrome/Chromium (common in Docker)
-        String chromeBinary = findChromeBinary();
-        ChromeOptions options = new ChromeOptions();
-
-        if (chromeBinary != null) {
-            options.setBinary(chromeBinary);
-            System.out.println("Using Chrome binary: " + chromeBinary);
-        }
-
-        if (headless) {
-            options.addArguments("--headless=new");
-        }
-        options.addArguments("--no-sandbox");
-        options.addArguments("--disable-dev-shm-usage");
-        options.addArguments("--remote-allow-origins=*");
-        options.addArguments("--disable-gpu");
-        options.addArguments("--disable-software-rasterizer");
-        options.addArguments("--disable-extensions");
+        ChromeOptions options = buildChromeOptions(headless);
 
         // Try to use system ChromeDriver first, else fallback to WebDriverManager
         String systemChromeDriver = findSystemChromeDriver();
@@ -91,10 +83,7 @@ public class DriverFactory {
     }
 
     private static WebDriver initFirefoxDriver(boolean headless) {
-        FirefoxOptions options = new FirefoxOptions();
-        if (headless) {
-            options.addArguments("--headless");
-        }
+        FirefoxOptions options = buildFirefoxOptions(headless);
         // Try system geckodriver first
         String systemGecko = findSystemGeckoDriver();
         if (systemGecko != null) {
@@ -106,14 +95,86 @@ public class DriverFactory {
     }
 
     private static WebDriver initEdgeDriver(boolean headless) {
+        EdgeOptions options = buildEdgeOptions(headless);
+        WebDriverManager.edgedriver().setup();
+        return new EdgeDriver(options);
+    }
+
+    private static WebDriver initRemoteDriver(String browser, boolean headless) {
+        MutableCapabilities capabilities;
+        switch (browser) {
+            case "chrome":
+                capabilities = buildChromeOptions(headless);
+                break;
+            case "firefox":
+                capabilities = buildFirefoxOptions(headless);
+                break;
+            case "edge":
+                capabilities = buildEdgeOptions(headless);
+                break;
+            default:
+                throw new IllegalArgumentException("Browser not supported for remote execution: " + browser);
+        }
+
+        try {
+            return new RemoteWebDriver(new URL(ConfigReader.getRemoteUrl()), capabilities);
+        } catch (MalformedURLException exception) {
+            throw new IllegalArgumentException("Invalid remote Selenium URL: " + ConfigReader.getRemoteUrl(), exception);
+        }
+    }
+
+    private static ChromeOptions buildChromeOptions(boolean headless) {
+        String chromeBinary = findChromeBinary();
+        ChromeOptions options = new ChromeOptions();
+
+        if (chromeBinary != null) {
+            options.setBinary(chromeBinary);
+            System.out.println("Using Chrome binary: " + chromeBinary);
+        }
+
+        if (headless) {
+            options.addArguments("--headless=new");
+        }
+        options.addArguments("--window-size=1920,1080");
+        options.addArguments("--no-sandbox");
+        options.addArguments("--disable-dev-shm-usage");
+        options.addArguments("--remote-allow-origins=*");
+        options.addArguments("--disable-gpu");
+        options.addArguments("--disable-software-rasterizer");
+        options.addArguments("--disable-extensions");
+        return options;
+    }
+
+    private static FirefoxOptions buildFirefoxOptions(boolean headless) {
+        FirefoxOptions options = new FirefoxOptions();
+        if (headless) {
+            options.addArguments("--headless");
+        }
+        options.addArguments("--width=1920");
+        options.addArguments("--height=1080");
+        return options;
+    }
+
+    private static EdgeOptions buildEdgeOptions(boolean headless) {
         EdgeOptions options = new EdgeOptions();
         if (headless) {
             options.addArguments("--headless=new");
         }
+        options.addArguments("--window-size=1920,1080");
         options.addArguments("--no-sandbox");
         options.addArguments("--disable-dev-shm-usage");
-        WebDriverManager.edgedriver().setup();
-        return new EdgeDriver(options);
+        return options;
+    }
+
+    private static void configureWindow(WebDriver driver, boolean headless) {
+        if (headless) {
+            return;
+        }
+        try {
+            driver.manage().window().maximize();
+        } catch (WebDriverException exception) {
+            System.out.println("Window maximize skipped: " + exception.getMessage());
+        }
     }
 
     private static String findChromeBinary() {

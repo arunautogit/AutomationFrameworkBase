@@ -1,31 +1,24 @@
-FROM maven:3.9.5-eclipse-temurin-17-alpine
+FROM maven:3.9.9-eclipse-temurin-17
 
 WORKDIR /app
 
-# Install Chromium, ChromeDriver, and other dependencies
-RUN apk add --no-cache \
+RUN apt-get update && apt-get install -y --no-install-recommends \
     chromium \
-    chromium-chromedriver \
-    xvfb \
-    ttf-freefont \
-    fontconfig
+    chromium-driver \
+    fonts-liberation \
+    ca-certificates \
+    && rm -rf /var/lib/apt/lists/*
 
-# Set environment variables for headless Chrome
-ENV CHROME_BIN=/usr/bin/chromium-browser
-ENV CHROME_DRIVER=/usr/lib/chromium/chromedriver
-ENV DISPLAY=:99
+ENV CHROME_BIN=/usr/bin/chromium
+ENV CHROME_DRIVER=/usr/bin/chromedriver
 
-# Copy all project files into the container
-COPY pom.xml .
-COPY testng.xml .
+COPY pom.xml ./
+COPY testng.xml ./
 COPY src ./src
 
-# Download Maven dependencies and compile the code
-RUN mvn dependency:go-offline
-RUN mvn clean compile
+RUN mvn -B -q dependency:go-offline
+RUN mvn -B -q -DskipTests clean test-compile
 
-# Create directories for test outputs (reports, screenshots, videos)
 RUN mkdir -p /app/test-output/screenshots /app/test-output/videos /app/test-output/logs
 
-# Default command: run tests using Maven
-CMD ["mvn", "test"]
+CMD ["mvn", "test", "-Denv=qa", "-Dbrowser=chrome", "-Dheadless=true"]

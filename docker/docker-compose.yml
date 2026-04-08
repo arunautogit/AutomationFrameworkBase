@@ -21,19 +21,18 @@ services:
       - SE_EVENT_BUS_HOST=selenium-hub
       - SE_EVENT_BUS_PUBLISH_PORT=4442
       - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
-      - SE_NODE_MAX_SESSIONS=5
-      - SE_NODE_SESSION_TIMEOUT=60
+      - SE_NODE_MAX_SESSIONS=2
+      - SE_NODE_SESSION_TIMEOUT=120
     shm_size: 2gb
 
-  firefox-node:
-    image: selenium/node-firefox:4.16.1
-    container_name: firefox-node
+  test-runner:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile
+    container_name: automation-framework-runner
     depends_on:
       - selenium-hub
+      - chrome-node
     environment:
-      - SE_EVENT_BUS_HOST=selenium-hub
-      - SE_EVENT_BUS_PUBLISH_PORT=4442
-      - SE_EVENT_BUS_SUBSCRIBE_PORT=4443
-      - SE_NODE_MAX_SESSIONS=5
-      - SE_NODE_SESSION_TIMEOUT=60
-    shm_size: 2gb
+      - REMOTE_URL=http://selenium-hub:4444/wd/hub
+    command: ["mvn", "test", "-Denv=qa", "-Dbrowser=chrome", "-Dheadless=true", "-DremoteUrl=http://selenium-hub:4444/wd/hub"]

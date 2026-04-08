@@ -15,7 +15,7 @@ public class VideoListener implements ITestListener {
                 e.printStackTrace();
             }
         } else {
-            System.out.println("Headless mode – video recording disabled.");
+            System.out.println("Headless mode - video recording disabled.");
         }
     }
 
